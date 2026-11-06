@@ -1,0 +1,29 @@
+#!/data/data/com.termux/files/usr/bin/bash
+# cg-run - compile & run a source file by its extension
+set -e
+f=${1:-}
+if [ -z "$f" ] || [ ! -f "$f" ]; then
+  echo "Usage: cg-run <file> [args...]   (c cpp py js ts go rs java kt php rb pl lua sh dart)"; exit 1
+fi
+shift
+need(){ command -v "$1" >/dev/null || { echo "'$1' not installed. Try: pkg install $2"; exit 127; }; }
+tmp="${TMPDIR:-/data/data/com.termux/files/usr/tmp}/cg-run"; mkdir -p "$tmp"
+base=$(basename "${f%.*}"); out="$tmp/$base"
+case "${f##*.}" in
+  c)    need clang clang;  clang -O2 -Wall "$f" -o "$out" -lm && "$out" "$@" ;;
+  cc|cpp|cxx) need clang++ clang; clang++ -O2 -Wall -std=c++17 "$f" -o "$out" && "$out" "$@" ;;
+  py)   need python python; python "$f" "$@" ;;
+  js|mjs) need node nodejs; node "$f" "$@" ;;
+  ts)   need npx nodejs; npx --yes tsx "$f" "$@" ;;
+  go)   need go golang; go run "$f" "$@" ;;
+  rs)   need rustc rust; rustc -O "$f" -o "$out" && "$out" "$@" ;;
+  java) need java openjdk-17; java "$f" "$@" ;;
+  kt)   need kotlinc kotlin; kotlinc "$f" -include-runtime -d "$out.jar" 2>/dev/null && java -jar "$out.jar" "$@" ;;
+  php)  need php php; php "$f" "$@" ;;
+  rb)   need ruby ruby; ruby "$f" "$@" ;;
+  pl)   need perl perl; perl "$f" "$@" ;;
+  lua)  need lua5.4 lua54; lua5.4 "$f" "$@" ;;
+  sh|bash) bash "$f" "$@" ;;
+  dart) need dart dart; dart run "$f" "$@" ;;
+  *) echo "cg-run: don't know how to run .${f##*.}"; exit 1 ;;
+esac

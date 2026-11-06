@@ -1,0 +1,14 @@
+#!/data/data/com.termux/files/usr/bin/bash
+# cg-backup - tar.gz a project into shared storage
+set -e
+src=${1:-.}; src=$(cd "$src" && pwd); name=$(basename "$src")
+dest="$HOME/storage/shared/CodeGallery/backups"
+if [ ! -d "$HOME/storage/shared" ]; then
+  echo "Storage not set up. Run: termux-setup-storage   (saving to ~/backups for now)"
+  dest="$HOME/backups"
+fi
+mkdir -p "$dest"
+file="$dest/${name}_$(date +%Y%m%d-%H%M%S).tar.gz"
+tar -czf "$file" -C "$(dirname "$src")" \
+  --exclude=node_modules --exclude=.venv --exclude=target --exclude=build --exclude=__pycache__ "$name"
+echo "Backup saved: $file ($(du -h "$file" | cut -f1))"

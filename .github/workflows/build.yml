@@ -1,0 +1,58 @@
+name: Build and publish repo
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Lint scripts
+        run: |
+          sudo apt-get install -y shellcheck >/dev/null
+          for f in packages/*/files/bin/*; do bash -n "$f"; done
+          shellcheck -S error packages/*/files/bin/* install.sh uninstall.sh scripts/*.sh || echo "::warning::shellcheck found issues"
+      - name: Build .deb packages
+        run: scripts/build-debs.sh
+      - name: Make APT index
+        run: python3 scripts/make-repo.py out
+      - name: Sign Release
+        env:
+          GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+        run: scripts/sign-repo.sh
+      - name: Verify signature
+        run: |
+          gpg --no-default-keyring --keyring ./tmp.kbx --import keys/codegallery.asc
+          gpgv --keyring ./tmp.kbx out/dists/codegallery/InRelease
+          gpgv --keyring ./tmp.kbx out/dists/codegallery/Release.gpg out/dists/codegallery/Release
+      - name: Assemble site
+        run: |
+          cp install.sh uninstall.sh keys/codegallery.gpg keys/codegallery.asc site/* out/
+          python3 scripts/make-index.py out/dists/codegallery/main/binary-aarch64/Packages > out/packages.json
+          touch out/.nojekyll
+          find out -maxdepth 4 | sort
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: out
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

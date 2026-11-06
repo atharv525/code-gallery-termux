@@ -1,0 +1,12 @@
+#!/data/data/com.termux/files/usr/bin/bash
+# cg-push - add + commit + push
+set -e
+git rev-parse --is-inside-work-tree >/dev/null 2>&1 || { echo "Not a git repo"; exit 1; }
+msg=${*:-"update $(date '+%Y-%m-%d %H:%M')"}
+git add -A
+if git diff --cached --quiet; then echo "Nothing to commit"; else git commit -m "$msg"; fi
+br=$(git rev-parse --abbrev-ref HEAD)
+if git remote | grep -q .; then
+  git pull --rebase --autostash origin "$br" 2>/dev/null || true
+  git push -u origin "$br"
+else echo "No remote yet. Add one: git remote add origin <url>"; fi

@@ -1,0 +1,59 @@
+#!/data/data/com.termux/files/usr/bin/bash
+# cg-setup - install coding toolkits in one go (official Termux packages)
+set -u
+declare -A G
+G[base]="git gh git-lfs curl wget openssh zip unzip tree jq ripgrep fd fzf htop termux-api"
+G[python]="python python-pip"
+G[node]="nodejs yarn"
+G[c]="clang make cmake ninja pkg-config binutils gdb build-essential"
+G[java]="openjdk-17 kotlin gradle maven"
+G[go]="golang"
+G[rust]="rust"
+G[php]="php"
+G[ruby]="ruby"
+G[perl]="perl"
+G[lua]="lua54"
+G[editors]="vim neovim nano micro tmux"
+G[web]="php nodejs python mariadb sqlite"
+G[db]="mariadb sqlite"
+G[media]="ffmpeg imagemagick"
+G[shell]="zsh fish shellcheck"
+ORDER="base python node c java go rust php ruby perl lua editors web db media shell"
+
+c(){ printf '\033[1;36m%s\033[0m\n' "$*"; }
+usage(){
+  c "cg-setup - Code Gallery toolkit installer"
+  echo "Usage: cg-setup [code | <group>...]"
+  echo "  code      everything (python, node, c/c++, java, go, rust, php, ruby, editors...)"
+  for g in $ORDER; do printf '  %-9s %s\n' "$g" "${G[$g]}"; done
+}
+install_pkgs(){
+  local want=() have=() p
+  for p in "$@"; do [[ " ${want[*]} " == *" $p "* ]] || want+=("$p"); done
+  for p in "${want[@]}"; do
+    if apt-cache show "$p" >/dev/null 2>&1; then have+=("$p"); else echo "skip $p (not found)"; fi
+  done
+  [ ${#have[@]} -eq 0 ] && return 0
+  c "Installing: ${have[*]}"
+  apt install -y "${have[@]}"
+}
+run(){
+  local list=() g
+  for g in "$@"; do
+    if [ "$g" = code ] || [ "$g" = all ]; then
+      for x in base python node c java go rust php ruby perl lua editors; do list+=(${G[$x]}); done
+    elif [ -n "${G[$g]:-}" ]; then list+=(${G[$g]})
+    else echo "unknown group: $g"; usage; exit 1; fi
+  done
+  apt update -y >/dev/null 2>&1 || apt update
+  install_pkgs "${list[@]}"
+  c "Done. Try: cg-new, cg-run, cg-serve"
+}
+case "${1:-}" in
+  -h|--help|help) usage ;;
+  "")
+    usage; echo
+    read -rp "Groups to install (e.g. 'code' or 'python c editors'): " ans
+    [ -n "$ans" ] && run $ans ;;
+  *) run "$@" ;;
+esac

@@ -1,0 +1,45 @@
+#!/data/data/com.termux/files/usr/bin/bash
+# cg-new - scaffold a project
+set -e
+T=${1:-}; N=${2:-}
+list="html python flask node express c cpp go rust java php bash"
+if [ -z "$T" ] || [ -z "$N" ]; then echo "Usage: cg-new <template> <name>"; echo "Templates: $list"; exit 1; fi
+[ -e "$N" ] && { echo "'$N' already exists"; exit 1; }
+mkdir -p "$N"; cd "$N"
+gi(){ printf '%s\n' "$@" > .gitignore; }
+case "$T" in
+  html) mkdir -p css js
+    cat > index.html <<'X'
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>My Page</title><link rel="stylesheet" href="css/style.css"></head>
+<body><h1>Hello from Termux!</h1><script src="js/app.js"></script></body></html>
+X
+    echo 'body{font-family:sans-serif;margin:2rem;background:#0f172a;color:#e2e8f0}' > css/style.css
+    echo 'console.log("ready");' > js/app.js; gi ".DS_Store"; RUN="cg-serve" ;;
+  python) printf 'def main():\n    print("Hello from Termux!")\n\n\nif __name__ == "__main__":\n    main()\n' > main.py
+    : > requirements.txt; gi "__pycache__/" ".venv/" "*.pyc"; RUN="python main.py" ;;
+  flask) printf 'from flask import Flask\n\napp = Flask(__name__)\n\n\n@app.route("/")\ndef home():\n    return "<h1>Hello from Flask on Termux!</h1>"\n\n\nif __name__ == "__main__":\n    app.run(host="0.0.0.0", port=5000, debug=True)\n' > app.py
+    echo flask > requirements.txt; gi "__pycache__/" ".venv/"; RUN="pip install -r requirements.txt && python app.py" ;;
+  node) printf '{\n  "name": "%s",\n  "version": "1.0.0",\n  "main": "index.js",\n  "scripts": { "start": "node index.js" }\n}\n' "$N" > package.json
+    echo 'console.log("Hello from Termux!");' > index.js; gi node_modules/; RUN="npm start" ;;
+  express) printf '{\n  "name": "%s",\n  "version": "1.0.0",\n  "main": "server.js",\n  "scripts": { "start": "node server.js" },\n  "dependencies": { "express": "^4.21.0" }\n}\n' "$N" > package.json
+    printf 'const express = require("express");\nconst app = express();\napp.get("/", (req, res) => res.send("<h1>Hello from Express on Termux!</h1>"));\napp.listen(3000, () => console.log("http://localhost:3000"));\n' > server.js
+    gi node_modules/; RUN="npm install && npm start" ;;
+  c) printf '#include <stdio.h>\n\nint main(void) {\n    printf("Hello from Termux!\\n");\n    return 0;\n}\n' > main.c
+    printf 'main: main.c\n\tclang -O2 -Wall -o main main.c\n\nclean:\n\trm -f main\n' > Makefile; gi main; RUN="make && ./main" ;;
+  cpp) printf '#include <iostream>\n\nint main() {\n    std::cout << "Hello from Termux!" << std::endl;\n    return 0;\n}\n' > main.cpp
+    printf 'main: main.cpp\n\tclang++ -O2 -Wall -std=c++17 -o main main.cpp\n\nclean:\n\trm -f main\n' > Makefile; gi main; RUN="make && ./main" ;;
+  go) printf 'package main\n\nimport "fmt"\n\nfunc main() {\n\tfmt.Println("Hello from Termux!")\n}\n' > main.go
+    command -v go >/dev/null && go mod init "$N" >/dev/null 2>&1 || printf 'module %s\n\ngo 1.21\n' "$N" > go.mod; RUN="go run ." ;;
+  rust) mkdir -p src; printf '[package]\nname = "%s"\nversion = "0.1.0"\nedition = "2021"\n\n[dependencies]\n' "$N" > Cargo.toml
+    printf 'fn main() {\n    println!("Hello from Termux!");\n}\n' > src/main.rs; gi target/; RUN="cargo run" ;;
+  java) printf 'public class Main {\n    public static void main(String[] args) {\n        System.out.println("Hello from Termux!");\n    }\n}\n' > Main.java
+    gi "*.class"; RUN="java Main.java" ;;
+  php) printf '<?php\necho "<h1>Hello from PHP on Termux!</h1>";\n' > index.php; RUN="php -S 0.0.0.0:8080" ;;
+  bash) printf '#!/data/data/com.termux/files/usr/bin/bash\nset -euo pipefail\necho "Hello from Termux!"\n' > main.sh; chmod +x main.sh; RUN="./main.sh" ;;
+  *) cd ..; rmdir "$N"; echo "Unknown template '$T'. Templates: $list"; exit 1 ;;
+esac
+printf '# %s\n\nRun: `%s`\n' "$N" "$RUN" > README.md
+if command -v git >/dev/null; then git init -q && echo "git repo created"; fi
+echo "Created $N ($T). Next: cd $N && $RUN"

@@ -1,0 +1,12 @@
+#!/data/data/com.termux/files/usr/bin/bash
+# cg-clean - clear package caches
+before=$(df -k "$HOME" | awk 'NR==2{print $4}')
+echo "Cleaning caches..."
+apt clean 2>/dev/null
+command -v pip >/dev/null && pip cache purge >/dev/null 2>&1
+command -v npm >/dev/null && npm cache clean --force >/dev/null 2>&1
+command -v yarn >/dev/null && yarn cache clean >/dev/null 2>&1
+command -v go >/dev/null && go clean -cache >/dev/null 2>&1
+rm -rf "$HOME/.cargo/registry/cache" "$HOME/.cache/pip" "${TMPDIR:-$PREFIX/tmp}/cg-run" 2>/dev/null
+after=$(df -k "$HOME" | awk 'NR==2{print $4}')
+echo "Freed about $(( (after - before) / 1024 )) MB"
