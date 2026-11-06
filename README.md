@@ -45,6 +45,7 @@ cg-setup python c editors # just some groups
 | `cg-backup` | `cg-backup [folder]` dated .tar.gz backup into phone storage (skips node_modules etc.) |
 | `cg-info` | Phone, Android, storage, memory and installed language versions |
 | `cg-clean` | Frees space by clearing apt, pip, npm, yarn, go and cargo caches |
+| `cg-bugbounty` | `cg-bugbounty all` installs a bug-bounty/recon toolkit: subfinder, httpx, nuclei, naabu, ffuf, gobuster, amass, katana, dalfox, gau, waybackurls, sqlmap, nmap, dnsx and more — by group (recon, scan, fuzz, dns, web, passwords, utils, wordlists) |
 | `code-gallery-keyring` | The repo's signing key (keeps it updated) |
 
 ## Uninstall
