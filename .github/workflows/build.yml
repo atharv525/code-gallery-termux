@@ -39,8 +39,10 @@ jobs:
           gpgv --keyring ./tmp.kbx out/dists/codegallery/Release.gpg out/dists/codegallery/Release
       - name: Assemble site
         run: |
-          cp install.sh uninstall.sh keys/codegallery.gpg keys/codegallery.asc site/* out/
+          cp install.sh uninstall.sh keys/codegallery.gpg keys/codegallery.asc out/
+          cp -r site/assets out/assets 2>/dev/null || true
           python3 scripts/make-index.py out/dists/codegallery/main/binary-aarch64/Packages > out/packages.json
+          python3 scripts/make-site.py out
           touch out/.nojekyll
           find out -maxdepth 4 | sort
       - uses: actions/upload-pages-artifact@v3
